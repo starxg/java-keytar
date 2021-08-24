@@ -1,0 +1,150 @@
+name: CI
+
+on:
+  push:
+    branches: [ master ]
+
+jobs:
+  build-win:
+    name: Windows
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - uses: actions/setup-java@v2
+        with:
+          distribution: 'adopt'
+          java-version: '8'
+
+      - name: Build X64
+        run: |
+          cd lib/keytar
+          cmake -G "Visual Studio 16 2019" -A X64 -B build/x64 -DCMAKE_BUILD_TYPE=Release
+          cmake --build build/x64 --config Release
+
+
+      - name: Build X86
+        run: |
+          cd lib/keytar
+          cmake -G "Visual Studio 16 2019" -A Win32 -B build/x86 -DCMAKE_BUILD_TYPE=Release
+          cmake --build build/x86 --config Release
+
+
+      - name: Build ARM64
+        run: |
+          cd lib/keytar
+          cmake -G "Visual Studio 16 2019" -A ARM64 -B build/arm64 -DCMAKE_BUILD_TYPE=Release
+          cmake --build build/arm64 --config Release
+
+      - name: Copy Librays
+        run: |
+          ren lib/keytar/build/x64/Release/keytar.dll   libkeytar-win32-x64.dll
+          ren lib/keytar/build/x86/Release/keytar.dll   libkeytar-win32-x86.dll
+          ren lib/keytar/build/arm64/Release/keytar.dll libkeytar-win32-arm64.dll
+
+      - name: Maven Test
+        run: |
+          copy lib/keytar/build/x64/Release/libkeytar-win32-x64.dll     src/main/resources/
+          copy lib/keytar/build/x86/Release/libkeytar-win32-x86.dll     src/main/resources/
+          copy lib/keytar/build/arm64/Release/libkeytar-win32-arm64.dll src/main/resources/
+          mvn clean test
+
+      - name: Upload Librays
+        uses: actions/upload-artifact@v2
+        with:
+          name: libkeytar-win32
+          path: |
+            lib/keytar/build/x64/Release/libkeytar-win32-x64.dll
+            lib/keytar/build/x86/Release/libkeytar-win32-x86.dll
+            lib/keytar/build/arm64/Release/libkeytar-win32-arm64.dll
+
+  build-osx:
+    name: MacOS
+    runs-on: macos-10.15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - uses: actions/setup-java@v2
+        with:
+          distribution: 'adopt'
+          java-version: '8'
+
+      - name: Build X64
+        run: |
+          cd lib/keytar
+          cmake -B build/x64 -DCMAKE_BUILD_TYPE=Release
+          cmake --build build/x64 --config Release
+
+      - name: Build ARM64
+        run: |
+          cd lib/keytar
+          cmake -B build/arm64 -DCMAKE_OSX_ARCHITECTURES="arm64" -DCMAKE_BUILD_TYPE=Release
+          cmake --build build/arm64 --config Release
+
+      - name: Copy Librays
+        run: |
+          mv lib/keytar/build/x64/libkeytar.dylib   lib/keytar/build/x64/libkeytar-darwin-x64.dylib
+          mv lib/keytar/build/arm64/libkeytar.dylib lib/keytar/build/arm64/libkeytar-darwin-arm64.dylib
+
+      - name: Maven Test
+        run: |
+          mkdir -p src/main/resources/
+          cp lib/keytar/build/x64/libkeytar-darwin-x64.dylib          src/main/resources/
+          cp lib/keytar/build/arm64/libkeytar-darwin-arm64.dylib      src/main/resources/
+          mvn clean test
+
+      - name: Upload Librays
+        uses: actions/upload-artifact@v2
+        with:
+          name: libkeytar-darwin
+          path: |
+            lib/keytar/build/x64/libkeytar-darwin-x64.dylib
+            lib/keytar/build/arm64/libkeytar-darwin-arm64.dylib
+
+  build-linux:
+    name: Linux
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - uses: actions/setup-java@v2
+        with:
+          distribution: 'adopt'
+          java-version: '8'
+
+      - name: Install Dependencies
+        run: |
+          sudo apt-get install libsecret-1-dev
+
+      - name: Build X64
+        run: |
+          cd lib/keytar
+          cmake -B build/x64 -DCMAKE_BUILD_TYPE=Release
+          cmake --build build/x64 --config Release
+
+      - name: Build I386 & ARM64
+        run: |
+          docker build -t java-keytar/arm64 docker/arm64-cross-compile
+          docker build -t java-keytar/i386 docker/i386
+          cd lib/keytar
+          docker run --rm -v ${PWD}:/project java-keytar/arm64 /bin/bash -c "cd /project && mkdir -p build/arm64 && cd build/arm64 && cmake -DCMAKE_BUILD_TYPE=Release ../../ && cmake --build . --config Release"
+          docker run --rm -v ${PWD}:/project java-keytar/i386 /bin/bash -c "cd /project && mkdir -p build/i386 && cd build/i386 && cmake -DCMAKE_BUILD_TYPE=Release ../../ && cmake --build . --config Release"
+
+      - name: Copy Librays
+        run: |
+          sudo mv lib/keytar/build/x64/libkeytar.so   lib/keytar/build/x64/libkeytar-linux-x64.so
+          sudo mv lib/keytar/build/i386/libkeytar.so  lib/keytar/build/i386/libkeytar-linux-i386.so
+          sudo mv lib/keytar/build/arm64/libkeytar.so lib/keytar/build/arm64/libkeytar-linux-arm64.so
+
+      - name: Upload Librays
+        uses: actions/upload-artifact@v2
+        with:
+          name: libkeytar-linux
+          path: |
+            lib/keytar/build/x64/libkeytar-linux-x64.so
+            lib/keytar/build/i386/libkeytar-linux-i386.so
+            lib/keytar/build/arm64/libkeytar-linux-arm64.so
+
