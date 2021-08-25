@@ -10,6 +10,13 @@
 
 	<url>https://github.com/starxg/java-keytar</url>
 
+	<name>java-keytar</name>
+
+	<description>A native Java module to get, add, replace, and delete passwords in system's keychain. On macOS the
+		passwords are managed by the Keychain, on Linux they are managed by the Secret Service API/libsecret, and on
+		Windows they are managed by Credential Vault.
+	</description>
+
 	<properties>
 		<maven.compiler.source>8</maven.compiler.source>
 		<maven.compiler.target>8</maven.compiler.target>
@@ -52,6 +59,17 @@
 		<developerConnection>scm:git:git@github.com:starxg/java-keytar.git</developerConnection>
 	</scm>
 
+	<distributionManagement>
+		<snapshotRepository>
+			<id>ossrh</id>
+			<url>https://s01.oss.sonatype.org/content/repositories/snapshots</url>
+		</snapshotRepository>
+		<repository>
+			<id>ossrh</id>
+			<url>https://s01.oss.sonatype.org/service/local/staging/deploy/maven2/</url>
+		</repository>
+	</distributionManagement>
+
 	<build>
 
 		<resources>
@@ -82,6 +100,12 @@
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-javadoc-plugin</artifactId>
 				<version>2.9.1</version>
+				<configuration>
+					<aggregate>true</aggregate>
+					<charset>UTF-8</charset>
+					<encoding>UTF-8</encoding>
+					<docencoding>UTF-8</docencoding>
+				</configuration>
 				<executions>
 					<execution>
 						<phase>package</phase>
@@ -91,12 +115,14 @@
 					</execution>
 				</executions>
 			</plugin>
+
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-gpg-plugin</artifactId>
-				<version>3.0.1</version>
+				<version>1.5</version>
 				<executions>
 					<execution>
+						<id>gpg</id>
 						<phase>verify</phase>
 						<goals>
 							<goal>sign</goal>

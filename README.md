@@ -5,6 +5,14 @@
 A native Java module to get, add, replace, and delete passwords in system's keychain. On macOS the passwords are managed by the Keychain, on Linux they are managed by the Secret Service API/libsecret, and on Windows they are managed by Credential Vault.
 
 ## Usage
+```xml
+<dependency>
+  <groupId>com.starxg</groupId>
+  <artifactId>java-keytar</artifactId>
+  <version>1.0.0</version>
+</dependency>
+```
+
 ```java
 Keytar instance = Keytar.getInstance();
 
